@@ -1,0 +1,10 @@
+ [Unit]
+ Description=Run mgetty on minitel
+ After=multi-user.target
+
+ [Service]
+ Type=idle
+ ExecStart=PATH/minitel.sh
+
+ [Install]
+ WantedBy=multi-user.target

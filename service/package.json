@@ -1,0 +1,12 @@
+{
+  "name": "play-usb-videos",
+  "version": "1.0.0",
+  "description": "A service that plays videos when a usb is plugged",
+  "main": "index.js",
+  "scripts": {
+    "uinstall": "./uninstall.sh",
+    "install": "./install.sh"
+  },
+  "author": "Leo Nicolle",
+  "license": "MIT"
+}
