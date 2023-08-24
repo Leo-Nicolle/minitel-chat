@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "upload": "scp -r ./dist/* leo@192.168.8.101:~/minitel",
+    "upload-service": "scp -r ./service/* minitel@192.168.8.101:~/minitel-service",
+    "upload-node": "scp -r ./service/* minitel@192.168.8.101:~/minitel-service",
+
+    "upload": "scp -r ./service* minitel@192.168.8.101:~/minitel",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
