@@ -5,14 +5,21 @@
   "main": "index.js",
   "scripts": {
     "upload-service": "scp -r ./service/* minitel@192.168.8.101:~/minitel-service",
-    "upload-node": "scp -r ./service/* minitel@192.168.8.101:~/minitel-service",
-
-    "upload": "scp -r ./service* minitel@192.168.8.101:~/minitel",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "upload-node": "scp -r ./dist/* minitel@192.168.8.101:~/prompt/dist/",
+    "upload": "npm run upload-service && npm run upload-node",
+    "test": "npx vite-node node/index.ts",
+    "build": "vite -c vite.config.ts build"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "openai": "^4.2.0",
+    "progress": "^2.0.3",
     "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "vite": "^4.4.9",
+    "vite-node": "^0.34.2",
+    "vite-plugin-node": "^3.0.2"
   }
 }
