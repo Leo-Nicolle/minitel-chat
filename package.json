@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "upload-service": "scp -r ./service/* minitel@192.168.8.101:~/minitel-service",
-    "upload-node": "scp -r ./dist/* minitel@192.168.8.101:~/prompt/dist/",
+    "upload-service": "scp -r ./service/* minitel@192.168.8.100:~/minitel-service",
+    "upload-node": "scp -r ./node/* minitel@192.168.8.100:~/minitel-chat/node/",
     "upload": "npm run upload-service && npm run upload-node",
     "test": "npx vite-node node/index.ts",
     "build": "vite -c vite.config.ts build"
