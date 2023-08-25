@@ -1,5 +1,5 @@
 node_modules/
-node/api-keys*
+node/api-keys.ts
 node/contexts.ts
 dist/
 package-lock.json
