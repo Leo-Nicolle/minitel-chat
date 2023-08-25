@@ -1,7 +1,7 @@
 // import prompts from 'prompts';
 import { GPT_API_KEY } from "./api-keys.ts";
 import OpenAI from 'openai';
-import { contexts } from './contexts.ts';
+import { contexts, timAliases } from './contexts.ts';
 import { stdin as input, stdout as output } from 'process';
 output.setEncoding('utf8');
 input.setEncoding('utf8');
@@ -13,7 +13,7 @@ const openai = new OpenAI({
 const conversation: OpenAI.Chat.Completions.CreateChatCompletionRequestMessage[] = [];
 const secretContexts = new Set<string>(['julie', 'tim']);
 const availableNames = Object.keys(contexts).filter(c => !secretContexts.has(c));
-let curentContextName = availableNames[0];
+let currentContext = contexts['robert'];
 
 function echo(msg: string) {
   output.write(`${msg}\n`);
@@ -24,6 +24,9 @@ function wait(ms: number) {
   })
 }
 
+function isTimAlias(name: string) {
+  return timAliases.some(alias => new RegExp(`^${name}$`, 'i').test(alias));
+}
 async function longEcho(msg: string) {
   const lines = msg.split('\n')
     .reduce((acc, line) => {
@@ -51,7 +54,7 @@ async function ask(question: string): Promise<string> {
 
 function formatResponse(completion: OpenAI.Chat.Completions.ChatCompletion) {
   let lines = completion.choices[0].message.content!
-    .replace(new RegExp(`^${curentContextName}:`, 'i'), '')
+    .replace(new RegExp(`^${currentContext.name}:`, 'i'), '')
     .split('\n')
   const split = lines.findIndex(e => e.match(/^\w+: /i));
   if (split > 0) {
@@ -63,30 +66,36 @@ function formatResponse(completion: OpenAI.Chat.Completions.ChatCompletion) {
 }
 
 async function startConversation(name: string, isSwitch?: boolean) {
-  curentContextName = name;
+  if (isTimAlias(name)) {
+    name = name.slice(0, 1).toLocaleUpperCase() + name.slice(1).toLocaleLowerCase();
+    currentContext = {
+      ...contexts['tim'],
+      context: `Vous vous appelez ${name}.\n${contexts['tim'].context}`,
+      name
+    };
+  } else {
+    currentContext = { ...contexts[name] };
+  }
   conversation.length = 0;
   if (!isSwitch) {
-    echo(`Appel du 3615 ${getName(name)}...`)
+    echo(`Appel du 3615 ${currentContext.name}...`)
     await wait(1000)
-    echo(`${getName(name)} est en ligne!`);
+    echo(`${currentContext.name} est en ligne!`);
   } else {
     await wait(3000);
   }
   conversation.push({
     role: 'system',
-    content: contexts[name].context
+    content: currentContext.context,
   });
-  const intro = contexts[name].intro;
-  return askToUser(`${getName(name)}: ${intro}`);
-}
-function getName(str: string) {
-  return curentContextName.slice(0, 1).toUpperCase() + curentContextName.slice(1);
+  const intro = currentContext.intro;
+  return askToUser(`${currentContext.name}: ${intro} `);
 }
 
 function mainMenu() {
   echo(new Array(60).fill('').join('\n'));
-  echo(`Voici la liste des personnes que vous pouvez appeler:`);
-  echo(availableNames.map(n => `  - ${n}`).join('\n'));
+  echo(`Voici la liste des personnes que vous pouvez appeler: `);
+  echo(availableNames.map(n => `  - ${n} `).join('\n'));
   return askToUser('Qui voulez-vous appeler ?');
 }
 
@@ -97,9 +106,12 @@ async function askToUser(message: string) {
   const reg = new RegExp(/3615\s*(\w+)/i);
   if (response.match(reg)) {
     let name = response.match(reg)![1].trim().toLocaleLowerCase();
+    if (isTimAlias(name)) {
+      return startConversation(name)
+    }
     if (!contexts[name]) {
       echo(`Désolé, ${name} n'est pas dans notre annuraire.`);
-      await wait(7000);
+      await wait(5000);
       return mainMenu();
     }
     return startConversation(name);
@@ -107,20 +119,20 @@ async function askToUser(message: string) {
     conversation.push({ role: 'user', content: response });
   }
 
-  const switchTreshold = curentContextName === 'julie' ? 0.075 : 0.075;
+  const switchTreshold = currentContext.name === 'julie' ? 0.075 : 0.075;
   const shouldSwitch = (conversation.length > 10 && Math.random() < switchTreshold);
 
-  if (curentContextName === 'julie' && shouldSwitch) {
+  if (currentContext.name === 'julie' && shouldSwitch) {
     await wait(5000);
-    echo(contexts[curentContextName].ciaoText);
+    echo(currentContext.ciaoText);
     await wait(7000);
 
     return mainMenu();
   }
 
-  if (curentContextName !== 'julie' && shouldSwitch) {
+  if (currentContext.name !== 'julie' && shouldSwitch) {
     await wait(3000);
-    echo(contexts[curentContextName].switchToJulieText);
+    echo(currentContext.switchToJulieText);
     echo('\n');
     return startConversation('julie', true);
   }
@@ -137,7 +149,7 @@ async function askToUser(message: string) {
   } else {
 
     const response = formatResponse(completion);
-    return askToUser(`${getName(curentContextName)}: ${response}`);
+    return askToUser(`${currentContext.name}: ${response}`);
   }
 }
 
