@@ -12,8 +12,8 @@ const openai = new OpenAI({
 });
 const conversation: OpenAI.Chat.Completions.CreateChatCompletionRequestMessage[] = [];
 const secretContexts = new Set<string>(['julie', 'tim']);
-const availiableNames = Object.keys(contexts).filter(c => !secretContexts.has(c));
-let curentContextName = availiableNames[0];
+const availableNames = Object.keys(contexts).filter(c => !secretContexts.has(c));
+let curentContextName = availableNames[0];
 
 function echo(msg: string) {
   output.write(`${msg}\n`);
@@ -62,12 +62,16 @@ function formatResponse(completion: OpenAI.Chat.Completions.ChatCompletion) {
     .trim();
 }
 
-async function startConversation(name: string) {
+async function startConversation(name: string, isSwitch?: boolean) {
   curentContextName = name;
-  conversation.length = 0
-  echo(`Appel du 3615 ${getName(name)}...`)
-  await wait(1000)
-  echo(`${getName(name)} est en ligne!`);
+  conversation.length = 0;
+  if (!isSwitch) {
+    echo(`Appel du 3615 ${getName(name)}...`)
+    await wait(1000)
+    echo(`${getName(name)} est en ligne!`);
+  } else {
+    await wait(3000);
+  }
   conversation.push({
     role: 'system',
     content: contexts[name].context
@@ -79,6 +83,13 @@ function getName(str: string) {
   return curentContextName.slice(0, 1).toUpperCase() + curentContextName.slice(1);
 }
 
+function mainMenu() {
+  echo(new Array(60).fill('').join('\n'));
+  echo(`Voici la liste des personnes que vous pouvez appeler:`);
+  echo(availableNames.map(n => `  - ${n}`).join('\n'));
+  return askToUser('Qui voulez-vous appeler ?');
+}
+
 async function askToUser(message: string) {
   conversation.push({ role: 'assistant', content: message });
   const response = await ask(message)!;
@@ -88,24 +99,37 @@ async function askToUser(message: string) {
     let name = response.match(reg)![1].trim().toLocaleLowerCase();
     if (!contexts[name]) {
       echo(`Désolé, ${name} n'est pas dans notre annuraire.`);
-      echo(`Voici la liste des personnes que vous pouvez appeler:`);
-      echo(availiableNames.map(n => `  - ${n}`).join('\n'));
-      return askToUser('Qui voulez-vous appeler ?');
-    }
-    if (Math.random() < 0.05) {
-      echo(`Désolé, ${name} n'est pas en ligne, mais Julie va vous répondre.`);
-      name = 'julie';
+      await wait(7000);
+      return mainMenu();
     }
     return startConversation(name);
   } else {
     conversation.push({ role: 'user', content: response });
   }
 
+  const switchTreshold = curentContextName === 'julie' ? 0.075 : 0.075;
+  const shouldSwitch = (conversation.length > 10 && Math.random() < switchTreshold);
+
+  if (curentContextName === 'julie' && shouldSwitch) {
+    await wait(5000);
+    echo(contexts[curentContextName].ciaoText);
+    await wait(7000);
+
+    return mainMenu();
+  }
+
+  if (curentContextName !== 'julie' && shouldSwitch) {
+    await wait(3000);
+    echo(contexts[curentContextName].switchToJulieText);
+    echo('\n');
+    return startConversation('julie', true);
+  }
+
   const completion = await openai.chat.completions.create({
     messages: conversation,
     model: 'gpt-4',
-    max_tokens: MAXLINELENGTH,
-    temperature: 0.5,
+    max_tokens: MAXLINELENGTH * 10,
+    temperature: 0.3,
   });
 
   if (!completion.choices || !completion.choices.length) {
@@ -119,7 +143,7 @@ async function askToUser(message: string) {
 
 async function main() {
   echo(new Array(60).fill('').join('\n'));
-  const response = await startConversation('tim');
+  const response = await startConversation('robert');
 }
 
 
