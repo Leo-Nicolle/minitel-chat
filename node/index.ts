@@ -52,6 +52,17 @@ async function ask(question: string): Promise<string> {
   })
 }
 
+async function timeout(fn) {
+  return Promise.race([
+    fn(),
+    new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('timeout'))
+      }, 60000 * 5)
+    })
+  ])
+}
+
 function formatResponse(completion: OpenAI.Chat.Completions.ChatCompletion) {
   let lines = completion.choices[0].message.content!
     .replace(new RegExp(`^${currentContext.name}:`, 'i'), '')
@@ -95,13 +106,21 @@ async function startConversation(name: string, isSwitch?: boolean) {
 function mainMenu() {
   echo(new Array(60).fill('').join('\n'));
   echo(`Voici la liste des personnes que vous pouvez appeler: `);
-  echo(availableNames.map(n => `  - ${n} `).join('\n'));
+  echo(availableNames.map(n => `  - 3615 ${n} `).join('\n'));
   return askToUser('Qui voulez-vous appeler ?');
 }
 
 async function askToUser(message: string) {
   conversation.push({ role: 'assistant', content: message });
-  const response = await ask(message)!;
+  let response;
+  try {
+    response = await timeout(() => ask(message))!;
+  } catch (e) {
+    echo(`Inactivité trop longue, retour au menu principal.`)
+    await wait(2000);
+    return mainMenu();
+  }
+
   echo('\n');
   const reg = new RegExp(/3615\s*(\w+)/i);
   if (response.match(reg)) {
@@ -136,10 +155,12 @@ async function askToUser(message: string) {
     echo('\n');
     return startConversation('julie', true);
   }
-
+  if (conversation.length > 10) {
+    conversation.shift();
+  }
   const completion = await openai.chat.completions.create({
     messages: conversation,
-    model: 'gpt-4',
+    model: 'gpt-3.5-turbo',
     max_tokens: MAXLINELENGTH * 10,
     temperature: 0.3,
   });
@@ -154,8 +175,13 @@ async function askToUser(message: string) {
 }
 
 async function main() {
-  echo(new Array(60).fill('').join('\n'));
-  const response = await startConversation('robert');
+  while (true) {
+    try {
+      echo(new Array(60).fill('').join('\n'));
+      const response = await mainMenu();
+    } catch (e) {
+    }
+  }
 }
 
 
