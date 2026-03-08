@@ -1,6 +1,6 @@
 // import prompts from 'prompts';
-import { GPT_API_KEY } from "./api-keys.ts";
 import OpenAI from 'openai';
+import fs from 'fs/promise';
 import { contexts, timAliases } from './contexts.ts';
 import { stdin as input, stdout as output } from 'process';
 output.setEncoding('utf8');
@@ -8,7 +8,7 @@ input.setEncoding('utf8');
 
 const MAXLINELENGTH = 80;
 const openai = new OpenAI({
-  apiKey: GPT_API_KEY, // defaults to process.env["OPENAI_API_KEY"]
+  apiKey: process.env.GPT_API_KEY, // defaults to process.env["OPENAI_API_KEY"]
 });
 const conversation: OpenAI.Chat.Completions.CreateChatCompletionRequestMessage[] = [];
 const secretContexts = new Set<string>(['julie', 'tim']);
@@ -21,7 +21,7 @@ function echo(msg: string) {
 function wait(ms: number) {
   return new Promise(resolve => {
     setTimeout(resolve, ms);
-  })
+  });
 }
 
 function isTimAlias(name: string) {
@@ -31,13 +31,13 @@ async function longEcho(msg: string) {
   const lines = msg.split('\n')
     .reduce((acc, line) => {
       for (let i = 0; i < line.length; i += MAXLINELENGTH) {
-        acc.push(line.slice(i, i + MAXLINELENGTH))
+        acc.push(line.slice(i, i + MAXLINELENGTH));
       }
       return acc;
-    }, [] as string[])
+    }, [] as string[]);
   for (let i = 0; i < lines.length; i++) {
-    echo(lines[i])
-    await wait(100)
+    echo(lines[i]);
+    await wait(100);
   }
 }
 
@@ -49,7 +49,7 @@ async function ask(question: string): Promise<string> {
       return resolve(str);
     };
     input.once('data', onData);
-  })
+  });
 }
 
 async function timeout(fn) {
@@ -57,19 +57,19 @@ async function timeout(fn) {
     fn(),
     new Promise((_, reject) => {
       setTimeout(() => {
-        reject(new Error('timeout'))
-      }, 60000 * 5)
+        reject(new Error('timeout'));
+      }, 60000 * 5);
     })
-  ])
+  ]);
 }
 
 function formatResponse(completion: OpenAI.Chat.Completions.ChatCompletion) {
   let lines = completion.choices[0].message.content!
     .replace(new RegExp(`^${currentContext.name}:`, 'i'), '')
-    .split('\n')
+    .split('\n');
   const split = lines.findIndex(e => e.match(/^\w+: /i));
   if (split > 0) {
-    lines = lines.slice(0, split)
+    lines = lines.slice(0, split);
   }
   return lines.join('\n')
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -89,8 +89,8 @@ async function startConversation(name: string, isSwitch?: boolean) {
   }
   conversation.length = 0;
   if (!isSwitch) {
-    echo(`Appel du 3615 ${currentContext.name}...`)
-    await wait(1000)
+    echo(`Appel du 3615 ${currentContext.name}...`);
+    await wait(1000);
     echo(`${currentContext.name} est en ligne!`);
   } else {
     await wait(3000);
@@ -116,7 +116,7 @@ async function askToUser(message: string) {
   try {
     response = await timeout(() => ask(message))!;
   } catch (e) {
-    echo(`Inactivité trop longue, retour au menu principal.`)
+    echo(`Inactivité trop longue, retour au menu principal.`);
     await wait(2000);
     return mainMenu();
   }
@@ -126,7 +126,7 @@ async function askToUser(message: string) {
   if (response.match(reg)) {
     let name = response.match(reg)![1].trim().toLocaleLowerCase();
     if (isTimAlias(name)) {
-      return startConversation(name)
+      return startConversation(name);
     }
     if (!contexts[name]) {
       echo(`Désolé, ${name} n'est pas dans notre annuraire.`);

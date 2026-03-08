@@ -17,7 +17,10 @@ export default defineConfig({
   //     }
   //   }
   // },
- plugins: [
+  build: {
+    target: 'node18',
+  },
+  plugins: [
     ...VitePluginNode({
       // Nodejs native Request adapter
       // currently this plugin support 'express', 'nest', 'koa' and 'fastify' out of box,

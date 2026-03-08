@@ -8,7 +8,8 @@
     "upload-node": "scp -r ./node/* minitel@192.168.8.100:~/minitel-chat/node/",
     "upload": "npm run upload-service && npm run upload-node",
     "test": "npx vite-node node/index.ts",
-    "build": "vite -c vite.config.ts build"
+    "build": "vite -c vite.config.ts build",
+    "start": "node --env-file=.env dist/index.mjs"
   },
   "author": "",
   "license": "ISC",
